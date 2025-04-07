@@ -1,4 +1,4 @@
-package marquinhos.app
+package marquinhoss.app
 
 import io.flutter.embedding.android.FlutterActivity
 

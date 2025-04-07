@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "marquinhos.app"
+    namespace = "marquinhoss.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
 
@@ -22,7 +22,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "marquinhos.app"
+        applicationId = "marquinhoss.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

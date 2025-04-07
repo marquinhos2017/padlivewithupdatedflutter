@@ -310,9 +310,12 @@ class _MyHomePageState extends State<MyHomePage> {
     currentAudioPlayer.setVolume(currentVolume);
   }
 
+  var timefadeinout = 300;
+
   Future<void> _fadeOutCurrentPad(AudioPlayer currentAudioPlayer) async {
     for (double i = currentAudioPlayer.volume; i >= 0; i -= 0.1) {
-      await Future.delayed(const Duration(milliseconds: 300), () {
+      await Future.delayed(Duration(milliseconds: timefadeinout), () {
+        print(timefadeinout);
         setState(() {
           currentAudioPlayer.setVolume(i);
         });
@@ -629,6 +632,12 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void _setFadeTime(int value) {
+    setState(() {
+      timefadeinout = value;
+    });
+  }
+
   // Função para verificar se qualquer player está ativo
   bool _isAnyPlayerActive() {
     return cAudioPlayer_bool ||
@@ -643,6 +652,48 @@ class _MyHomePageState extends State<MyHomePage> {
         fSustenidoAudioPlayer_bool ||
         gSustenidoAudioPlayer_bool ||
         aSustenidoAudioPlayer_bool;
+  }
+
+  void _showTransitionSettings(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black,
+      builder: (_) {
+        final isDark =
+            Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: const BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "Transition Speed",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.white,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildButton(context, 100),
+                  const SizedBox(width: 10),
+                  _buildButton(context, 200),
+                  const SizedBox(width: 10),
+                  _buildButton(context, 300),
+                ],
+              )
+            ],
+          ),
+        );
+      },
+    );
   }
 
   // Função para exibir o LED piscando
@@ -670,17 +721,65 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Widget _buildButton(BuildContext context, int value) {
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
+    bool isSelected = timefadeinout == value;
+
+    return ElevatedButton(
+      onPressed: () {
+        _setFadeTime(value);
+        Navigator.of(context).pop(); // Fecha o dialog
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isDarkMode
+            ? (isSelected
+                ? const Color.fromARGB(105, 204, 11, 11)
+                : const Color.fromARGB(0, 173, 146, 146)) // Modo escuro
+            : (isSelected
+                ? const Color.fromARGB(255, 196, 3, 3).withOpacity(0.1)
+                : Colors.transparent), // Modo claro
+
+        shadowColor: isSelected ? Colors.red : Colors.transparent,
+        elevation: isSelected ? (isDarkMode ? 2 : 2) : 0, // Muda com o tema
+        side: BorderSide(
+            color: isDarkMode ? Colors.transparent : Colors.transparent,
+            width: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        padding: EdgeInsets.zero,
+      ),
+      child: Text(
+        '$value ms',
+        style: TextStyle(
+          color: isDarkMode ? Colors.black : Colors.red,
+          fontWeight: FontWeight.bold,
+          fontSize: 10,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     _toggleLed(); // Verificar se algum player está tocando para ativar o LED
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showTransitionSettings(context),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.redAccent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Colors.redAccent, width: 2),
+        ),
+        elevation: 8,
+        child: const Icon(Icons.speed, size: 30),
+      ),
       appBar: AppBar(
         toolbarHeight: 40, // Ajuste a altura do AppBar conforme necessário
         elevation: 0,
         backgroundColor: (Provider.of<ThemeProvider>(context).isDarkMode
-            ? Colors.white
-            : Colors.black),
+            ? const Color.fromARGB(255, 255, 255, 255)
+            : const Color.fromARGB(255, 0, 0, 0)),
         actions: [
           if (cAudioPlayer_bool ||
               dAudioPlayer_bool ||
@@ -738,715 +837,777 @@ class _MyHomePageState extends State<MyHomePage> {
       backgroundColor: (Provider.of<ThemeProvider>(context).isDarkMode
           ? Colors.white
           : Colors.black),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildLed(),
-              SizedBox(height: 12),
-              Column(
-                children: [
-                  // Slider de controle de volume
+      body: SingleChildScrollView(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(height: 12),
+                Column(
+                  children: [
+                    // Slider de controle de volume
 
-                  // Botões de aumentar e diminuir volume
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [],
+                    // Botões de aumentar e diminuir volume
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [],
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () => {_showInfoDialog(context)},
+                      child: Container(
+                        child: Image.asset(
+                          scale: 1.5,
+                          Provider.of<ThemeProvider>(context).isDarkMode
+                              ? "assets/whitelogo.png"
+                              : "assets/blacklogo.png",
+                        ),
+                        margin: EdgeInsets.only(bottom: 24),
+                      ),
+                    ),
+                    _buildLed(),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Container(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        ElevatedButton(
+                          style: ButtonStyle(
+                            fixedSize:
+                                WidgetStateProperty.all<Size>(Size(90, 90)),
+                            shape:
+                                WidgetStateProperty.all<RoundedRectangleBorder>(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18.0),
+                                side: BorderSide(
+                                  color: cAudioPlayer_bool == true
+                                      ? Colors.red
+                                      : (Provider.of<ThemeProvider>(
+                                          context,
+                                        ).isDarkMode
+                                          ? Colors.black
+                                          : Colors.white),
+                                ),
+                              ),
+                            ),
+                            backgroundColor: WidgetStateProperty.all(
+                              Provider.of<ThemeProvider>(context).isDarkMode
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            elevation: WidgetStateProperty.all(0), // Sem sombra
+                            overlayColor: WidgetStateProperty.all(
+                              Colors.transparent,
+                            ), // Remove efeito de clique
+                          ),
+                          onPressed: () {
+                            _togglePad(
+                              "C",
+                              cAudioPlayer,
+                            ); // cAudioPlayer é o player associado ao pad C
+                          },
+                          child: Center(
+                            child: Text(
+                              "C",
+                              style: TextStyle(
+                                fontSize: 28,
+                                color: cAudioPlayer_bool == true
+                                    ? Colors.red
+                                    : (Provider.of<ThemeProvider>(
+                                        context,
+                                      ).isDarkMode
+                                        ? Colors.black
+                                        : Colors.white),
+                              ),
+                            ),
+                          ),
+                        ),
+                        ElevatedButton(
+                          child: Center(
+                            child: Text(
+                              "C#",
+                              style: TextStyle(
+                                fontSize: 28,
+                                color: cSustenidoAudioPlayer_bool
+                                    ? Colors.red
+                                    : (Provider.of<ThemeProvider>(
+                                        context,
+                                      ).isDarkMode
+                                        ? Colors.black
+                                        : Colors.white),
+                              ),
+                            ),
+                          ),
+                          style: ButtonStyle(
+                            fixedSize:
+                                WidgetStateProperty.all<Size>(Size(90, 90)),
+                            shape:
+                                WidgetStateProperty.all<RoundedRectangleBorder>(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18.0),
+                                side: BorderSide(
+                                  color: cSustenidoAudioPlayer_bool
+                                      ? Colors.red
+                                      : (Provider.of<ThemeProvider>(
+                                          context,
+                                        ).isDarkMode
+                                          ? Colors.black
+                                          : Colors.white),
+                                ),
+                              ),
+                            ),
+                            backgroundColor: WidgetStateProperty.all(
+                              Provider.of<ThemeProvider>(context).isDarkMode
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            elevation: WidgetStateProperty.all(0), // Sem sombra
+                            overlayColor: WidgetStateProperty.all(
+                              Colors.transparent,
+                            ), // Remove efeito de clique
+                          ),
+                          onPressed: () {
+                            _togglePad("C#", cSustenidoAudioPlayer);
+                          },
+                        ),
+                        ElevatedButton(
+                          child: Center(
+                            child: Text(
+                              "D",
+                              style: TextStyle(
+                                fontSize: 28,
+                                color: dAudioPlayer_bool == true
+                                    ? Colors.red
+                                    : (Provider.of<ThemeProvider>(
+                                        context,
+                                      ).isDarkMode
+                                        ? Colors.black
+                                        : Colors.white),
+                              ),
+                            ),
+                          ),
+                          style: ButtonStyle(
+                            fixedSize:
+                                WidgetStateProperty.all<Size>(Size(90, 90)),
+                            shape:
+                                WidgetStateProperty.all<RoundedRectangleBorder>(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18.0),
+                                side: BorderSide(
+                                  color: dAudioPlayer_bool == true
+                                      ? Colors.red
+                                      : (Provider.of<ThemeProvider>(
+                                          context,
+                                        ).isDarkMode
+                                          ? Colors.black
+                                          : Colors.white),
+                                ),
+                              ),
+                            ),
+                            backgroundColor: WidgetStateProperty.all(
+                              Provider.of<ThemeProvider>(context).isDarkMode
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            elevation: WidgetStateProperty.all(0), // Sem sombra
+                            overlayColor: WidgetStateProperty.all(
+                              Colors.transparent,
+                            ), // Remove efeito de clique
+                          ),
+                          onPressed: () {
+                            _togglePad(
+                              "D",
+                              dAudioPlayer,
+                            ); // dAudioPlayer é o player associado ao pad D
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-              GestureDetector(
-                onTap: () => {_showInfoDialog(context)},
-                child: Container(
-                  child: Image.asset(
-                    scale: 1.5,
-                    Provider.of<ThemeProvider>(context).isDarkMode
-                        ? "assets/whitelogo.png"
-                        : "assets/blacklogo.png",
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Container(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        ElevatedButton(
+                          child: Center(
+                            child: Text(
+                              "Eb",
+                              style: TextStyle(
+                                fontSize: 28,
+                                color: dSustenidoAudioPlayer_bool
+                                    ? Colors.red
+                                    : (Provider.of<ThemeProvider>(
+                                        context,
+                                      ).isDarkMode
+                                        ? Colors.black
+                                        : Colors.white),
+                              ),
+                            ),
+                          ),
+                          style: ButtonStyle(
+                            fixedSize:
+                                WidgetStateProperty.all<Size>(Size(90, 90)),
+                            shape:
+                                WidgetStateProperty.all<RoundedRectangleBorder>(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18.0),
+                                side: BorderSide(
+                                  color: dSustenidoAudioPlayer_bool
+                                      ? Colors.red
+                                      : (Provider.of<ThemeProvider>(
+                                          context,
+                                        ).isDarkMode
+                                          ? Colors.black
+                                          : Colors.white),
+                                ),
+                              ),
+                            ),
+                            backgroundColor: WidgetStateProperty.all(
+                              Provider.of<ThemeProvider>(context).isDarkMode
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            elevation: WidgetStateProperty.all(0),
+                            overlayColor: WidgetStateProperty.all(
+                              Colors.transparent,
+                            ),
+                          ),
+                          onPressed: () {
+                            _togglePad("D#", dSustenidoAudioPlayer);
+                          },
+                        ),
+                        ElevatedButton(
+                          child: Center(
+                            child: Text(
+                              "E",
+                              style: TextStyle(
+                                fontSize: 28,
+                                color: eAudioPlayer_bool
+                                    ? Colors.red
+                                    : (Provider.of<ThemeProvider>(
+                                        context,
+                                      ).isDarkMode
+                                        ? Colors.black
+                                        : Colors.white),
+                              ),
+                            ),
+                          ),
+                          style: ButtonStyle(
+                            fixedSize:
+                                WidgetStateProperty.all<Size>(Size(90, 90)),
+                            shape:
+                                WidgetStateProperty.all<RoundedRectangleBorder>(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18.0),
+                                side: BorderSide(
+                                  color: eAudioPlayer_bool
+                                      ? Colors.red
+                                      : (Provider.of<ThemeProvider>(
+                                          context,
+                                        ).isDarkMode
+                                          ? Colors.black
+                                          : Colors.white),
+                                ),
+                              ),
+                            ),
+                            backgroundColor: WidgetStateProperty.all(
+                              Provider.of<ThemeProvider>(context).isDarkMode
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            elevation: WidgetStateProperty.all(0),
+                            overlayColor: WidgetStateProperty.all(
+                              Colors.transparent,
+                            ),
+                          ),
+                          onPressed: () {
+                            _togglePad("E", eAudioPlayer);
+                          },
+                        ),
+                        ElevatedButton(
+                          child: Center(
+                            child: Text(
+                              "F",
+                              style: TextStyle(
+                                fontSize: 28,
+                                color: fAudioPlayer_bool
+                                    ? Colors.red
+                                    : (Provider.of<ThemeProvider>(
+                                        context,
+                                      ).isDarkMode
+                                        ? Colors.black
+                                        : Colors.white),
+                              ),
+                            ),
+                          ),
+                          style: ButtonStyle(
+                            fixedSize:
+                                WidgetStateProperty.all<Size>(Size(90, 90)),
+                            shape:
+                                WidgetStateProperty.all<RoundedRectangleBorder>(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18.0),
+                                side: BorderSide(
+                                  color: fAudioPlayer_bool
+                                      ? Colors.red
+                                      : (Provider.of<ThemeProvider>(
+                                          context,
+                                        ).isDarkMode
+                                          ? Colors.black
+                                          : Colors.white),
+                                ),
+                              ),
+                            ),
+                            backgroundColor: WidgetStateProperty.all(
+                              Provider.of<ThemeProvider>(context).isDarkMode
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            elevation: WidgetStateProperty.all(0),
+                            overlayColor: WidgetStateProperty.all(
+                              Colors.transparent,
+                            ),
+                          ),
+                          onPressed: () {
+                            _togglePad("F", fAudioPlayer);
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                  margin: EdgeInsets.only(bottom: 24),
                 ),
-              ),
-              Container(
-                margin: EdgeInsets.only(bottom: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    ElevatedButton(
-                      style: ButtonStyle(
-                        fixedSize: WidgetStateProperty.all<Size>(Size(90, 90)),
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18.0),
-                            side: BorderSide(
-                              color: cAudioPlayer_bool == true
-                                  ? Colors.red
-                                  : (Provider.of<ThemeProvider>(
-                                      context,
-                                    ).isDarkMode
-                                      ? Colors.black
-                                      : Colors.white),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Container(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        ElevatedButton(
+                          child: Center(
+                            child: Text(
+                              "Gb",
+                              style: TextStyle(
+                                fontSize: 28,
+                                color: fSustenidoAudioPlayer_bool == true
+                                    ? Colors.red
+                                    : (Provider.of<ThemeProvider>(
+                                        context,
+                                      ).isDarkMode
+                                        ? Colors.black
+                                        : Colors.white),
+                              ),
                             ),
                           ),
-                        ),
-                        backgroundColor: WidgetStateProperty.all(
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                        elevation: WidgetStateProperty.all(0), // Sem sombra
-                        overlayColor: WidgetStateProperty.all(
-                          Colors.transparent,
-                        ), // Remove efeito de clique
-                      ),
-                      onPressed: () {
-                        _togglePad(
-                          "C",
-                          cAudioPlayer,
-                        ); // cAudioPlayer é o player associado ao pad C
-                      },
-                      child: Center(
-                        child: Text(
-                          "C",
-                          style: TextStyle(
-                            fontSize: 28,
-                            color: cAudioPlayer_bool == true
-                                ? Colors.red
-                                : (Provider.of<ThemeProvider>(
-                                    context,
-                                  ).isDarkMode
-                                    ? Colors.black
-                                    : Colors.white),
+                          style: ButtonStyle(
+                            fixedSize:
+                                WidgetStateProperty.all<Size>(Size(90, 90)),
+                            shape:
+                                WidgetStateProperty.all<RoundedRectangleBorder>(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18.0),
+                                side: BorderSide(
+                                  color: fSustenidoAudioPlayer_bool == true
+                                      ? Colors.red
+                                      : (Provider.of<ThemeProvider>(
+                                          context,
+                                        ).isDarkMode
+                                          ? Colors.black
+                                          : Colors.white),
+                                ),
+                              ),
+                            ),
+                            backgroundColor: WidgetStateProperty.all(
+                              Provider.of<ThemeProvider>(context).isDarkMode
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            elevation: WidgetStateProperty.all(0), // Sem sombra
+                            overlayColor: WidgetStateProperty.all(
+                              Colors.transparent,
+                            ), // Remove efeito de clique
                           ),
+                          onPressed: () {
+                            _togglePad(
+                              "F#",
+                              fSustenidoAudioPlayer,
+                            ); // fSustenidoAudioPlayer é o player associado ao pad Gb
+                          },
                         ),
-                      ),
-                    ),
-                    ElevatedButton(
-                      child: Center(
-                        child: Text(
-                          "C#",
-                          style: TextStyle(
-                            fontSize: 28,
-                            color: cSustenidoAudioPlayer_bool
-                                ? Colors.red
-                                : (Provider.of<ThemeProvider>(
-                                    context,
-                                  ).isDarkMode
-                                    ? Colors.black
-                                    : Colors.white),
-                          ),
-                        ),
-                      ),
-                      style: ButtonStyle(
-                        fixedSize: WidgetStateProperty.all<Size>(Size(90, 90)),
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18.0),
-                            side: BorderSide(
-                              color: cSustenidoAudioPlayer_bool
-                                  ? Colors.red
-                                  : (Provider.of<ThemeProvider>(
-                                      context,
-                                    ).isDarkMode
-                                      ? Colors.black
-                                      : Colors.white),
+                        ElevatedButton(
+                          child: Center(
+                            child: Text(
+                              "G",
+                              style: TextStyle(
+                                fontSize: 28,
+                                color: gAudioPlayer_bool == true
+                                    ? Colors.red
+                                    : (Provider.of<ThemeProvider>(
+                                        context,
+                                      ).isDarkMode
+                                        ? Colors.black
+                                        : Colors.white),
+                              ),
                             ),
                           ),
-                        ),
-                        backgroundColor: WidgetStateProperty.all(
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                        elevation: WidgetStateProperty.all(0), // Sem sombra
-                        overlayColor: WidgetStateProperty.all(
-                          Colors.transparent,
-                        ), // Remove efeito de clique
-                      ),
-                      onPressed: () {
-                        _togglePad("C#", cSustenidoAudioPlayer);
-                      },
-                    ),
-                    ElevatedButton(
-                      child: Center(
-                        child: Text(
-                          "D",
-                          style: TextStyle(
-                            fontSize: 28,
-                            color: dAudioPlayer_bool == true
-                                ? Colors.red
-                                : (Provider.of<ThemeProvider>(
-                                    context,
-                                  ).isDarkMode
-                                    ? Colors.black
-                                    : Colors.white),
+                          style: ButtonStyle(
+                            fixedSize:
+                                WidgetStateProperty.all<Size>(Size(90, 90)),
+                            shape:
+                                WidgetStateProperty.all<RoundedRectangleBorder>(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18.0),
+                                side: BorderSide(
+                                  color: gAudioPlayer_bool == true
+                                      ? Colors.red
+                                      : (Provider.of<ThemeProvider>(
+                                          context,
+                                        ).isDarkMode
+                                          ? Colors.black
+                                          : Colors.white),
+                                ),
+                              ),
+                            ),
+                            backgroundColor: WidgetStateProperty.all(
+                              Provider.of<ThemeProvider>(context).isDarkMode
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            elevation: WidgetStateProperty.all(0), // Sem sombra
+                            overlayColor: WidgetStateProperty.all(
+                              Colors.transparent,
+                            ), // Remove efeito de clique
                           ),
+                          onPressed: () {
+                            _togglePad(
+                              "G",
+                              gAudioPlayer,
+                            ); // gAudioPlayer é o player associado ao pad G
+                          },
                         ),
-                      ),
-                      style: ButtonStyle(
-                        fixedSize: WidgetStateProperty.all<Size>(Size(90, 90)),
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18.0),
-                            side: BorderSide(
-                              color: dAudioPlayer_bool == true
-                                  ? Colors.red
-                                  : (Provider.of<ThemeProvider>(
-                                      context,
-                                    ).isDarkMode
-                                      ? Colors.black
-                                      : Colors.white),
+                        ElevatedButton(
+                          child: Center(
+                            child: Text(
+                              "Ab",
+                              style: TextStyle(
+                                fontSize: 28,
+                                color: gSustenidoAudioPlayer_bool == true
+                                    ? Colors.red
+                                    : (Provider.of<ThemeProvider>(
+                                        context,
+                                      ).isDarkMode
+                                        ? Colors.black
+                                        : Colors.white),
+                              ),
                             ),
                           ),
-                        ),
-                        backgroundColor: WidgetStateProperty.all(
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                        elevation: WidgetStateProperty.all(0), // Sem sombra
-                        overlayColor: WidgetStateProperty.all(
-                          Colors.transparent,
-                        ), // Remove efeito de clique
-                      ),
-                      onPressed: () {
-                        _togglePad(
-                          "D",
-                          dAudioPlayer,
-                        ); // dAudioPlayer é o player associado ao pad D
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                margin: EdgeInsets.only(bottom: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    ElevatedButton(
-                      child: Center(
-                        child: Text(
-                          "Eb",
-                          style: TextStyle(
-                            fontSize: 28,
-                            color: dSustenidoAudioPlayer_bool
-                                ? Colors.red
-                                : (Provider.of<ThemeProvider>(
-                                    context,
-                                  ).isDarkMode
-                                    ? Colors.black
-                                    : Colors.white),
-                          ),
-                        ),
-                      ),
-                      style: ButtonStyle(
-                        fixedSize: WidgetStateProperty.all<Size>(Size(90, 90)),
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18.0),
-                            side: BorderSide(
-                              color: dSustenidoAudioPlayer_bool
-                                  ? Colors.red
-                                  : (Provider.of<ThemeProvider>(
-                                      context,
-                                    ).isDarkMode
-                                      ? Colors.black
-                                      : Colors.white),
+                          style: ButtonStyle(
+                            fixedSize:
+                                WidgetStateProperty.all<Size>(Size(90, 90)),
+                            shape:
+                                WidgetStateProperty.all<RoundedRectangleBorder>(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18.0),
+                                side: BorderSide(
+                                  color: gSustenidoAudioPlayer_bool == true
+                                      ? Colors.red
+                                      : (Provider.of<ThemeProvider>(
+                                          context,
+                                        ).isDarkMode
+                                          ? Colors.black
+                                          : Colors.white),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        backgroundColor: WidgetStateProperty.all(
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                        elevation: WidgetStateProperty.all(0),
-                        overlayColor: WidgetStateProperty.all(
-                          Colors.transparent,
-                        ),
-                      ),
-                      onPressed: () {
-                        _togglePad("D#", dSustenidoAudioPlayer);
-                      },
-                    ),
-                    ElevatedButton(
-                      child: Center(
-                        child: Text(
-                          "E",
-                          style: TextStyle(
-                            fontSize: 28,
-                            color: eAudioPlayer_bool
-                                ? Colors.red
-                                : (Provider.of<ThemeProvider>(
-                                    context,
-                                  ).isDarkMode
-                                    ? Colors.black
-                                    : Colors.white),
-                          ),
-                        ),
-                      ),
-                      style: ButtonStyle(
-                        fixedSize: WidgetStateProperty.all<Size>(Size(90, 90)),
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18.0),
-                            side: BorderSide(
-                              color: eAudioPlayer_bool
-                                  ? Colors.red
-                                  : (Provider.of<ThemeProvider>(
-                                      context,
-                                    ).isDarkMode
-                                      ? Colors.black
-                                      : Colors.white),
+                            backgroundColor: WidgetStateProperty.all(
+                              Provider.of<ThemeProvider>(context).isDarkMode
+                                  ? Colors.white
+                                  : Colors.black,
                             ),
+                            elevation: WidgetStateProperty.all(0), // Sem sombra
+                            overlayColor: WidgetStateProperty.all(
+                              Colors.transparent,
+                            ), // Remove efeito de clique
                           ),
+                          onPressed: () {
+                            _togglePad(
+                              "G#",
+                              gSustenidoAudioPlayer,
+                            ); // gSustenidoAudioPlayer é o player associado ao pad Ab
+                          },
                         ),
-                        backgroundColor: WidgetStateProperty.all(
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                        elevation: WidgetStateProperty.all(0),
-                        overlayColor: WidgetStateProperty.all(
-                          Colors.transparent,
-                        ),
-                      ),
-                      onPressed: () {
-                        _togglePad("E", eAudioPlayer);
-                      },
+                      ],
                     ),
-                    ElevatedButton(
-                      child: Center(
-                        child: Text(
-                          "F",
-                          style: TextStyle(
-                            fontSize: 28,
-                            color: fAudioPlayer_bool
-                                ? Colors.red
-                                : (Provider.of<ThemeProvider>(
-                                    context,
-                                  ).isDarkMode
-                                    ? Colors.black
-                                    : Colors.white),
-                          ),
-                        ),
-                      ),
-                      style: ButtonStyle(
-                        fixedSize: WidgetStateProperty.all<Size>(Size(90, 90)),
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18.0),
-                            side: BorderSide(
-                              color: fAudioPlayer_bool
-                                  ? Colors.red
-                                  : (Provider.of<ThemeProvider>(
-                                      context,
-                                    ).isDarkMode
-                                      ? Colors.black
-                                      : Colors.white),
-                            ),
-                          ),
-                        ),
-                        backgroundColor: WidgetStateProperty.all(
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                        elevation: WidgetStateProperty.all(0),
-                        overlayColor: WidgetStateProperty.all(
-                          Colors.transparent,
-                        ),
-                      ),
-                      onPressed: () {
-                        _togglePad("F", fAudioPlayer);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                margin: EdgeInsets.only(bottom: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    ElevatedButton(
-                      child: Center(
-                        child: Text(
-                          "Gb",
-                          style: TextStyle(
-                            fontSize: 28,
-                            color: fSustenidoAudioPlayer_bool == true
-                                ? Colors.red
-                                : (Provider.of<ThemeProvider>(
-                                    context,
-                                  ).isDarkMode
-                                    ? Colors.black
-                                    : Colors.white),
-                          ),
-                        ),
-                      ),
-                      style: ButtonStyle(
-                        fixedSize: WidgetStateProperty.all<Size>(Size(90, 90)),
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18.0),
-                            side: BorderSide(
-                              color: fSustenidoAudioPlayer_bool == true
-                                  ? Colors.red
-                                  : (Provider.of<ThemeProvider>(
-                                      context,
-                                    ).isDarkMode
-                                      ? Colors.black
-                                      : Colors.white),
-                            ),
-                          ),
-                        ),
-                        backgroundColor: WidgetStateProperty.all(
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                        elevation: WidgetStateProperty.all(0), // Sem sombra
-                        overlayColor: WidgetStateProperty.all(
-                          Colors.transparent,
-                        ), // Remove efeito de clique
-                      ),
-                      onPressed: () {
-                        _togglePad(
-                          "F#",
-                          fSustenidoAudioPlayer,
-                        ); // fSustenidoAudioPlayer é o player associado ao pad Gb
-                      },
-                    ),
-                    ElevatedButton(
-                      child: Center(
-                        child: Text(
-                          "G",
-                          style: TextStyle(
-                            fontSize: 28,
-                            color: gAudioPlayer_bool == true
-                                ? Colors.red
-                                : (Provider.of<ThemeProvider>(
-                                    context,
-                                  ).isDarkMode
-                                    ? Colors.black
-                                    : Colors.white),
-                          ),
-                        ),
-                      ),
-                      style: ButtonStyle(
-                        fixedSize: WidgetStateProperty.all<Size>(Size(90, 90)),
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18.0),
-                            side: BorderSide(
-                              color: gAudioPlayer_bool == true
-                                  ? Colors.red
-                                  : (Provider.of<ThemeProvider>(
-                                      context,
-                                    ).isDarkMode
-                                      ? Colors.black
-                                      : Colors.white),
-                            ),
-                          ),
-                        ),
-                        backgroundColor: WidgetStateProperty.all(
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                        elevation: WidgetStateProperty.all(0), // Sem sombra
-                        overlayColor: WidgetStateProperty.all(
-                          Colors.transparent,
-                        ), // Remove efeito de clique
-                      ),
-                      onPressed: () {
-                        _togglePad(
-                          "G",
-                          gAudioPlayer,
-                        ); // gAudioPlayer é o player associado ao pad G
-                      },
-                    ),
-                    ElevatedButton(
-                      child: Center(
-                        child: Text(
-                          "Ab",
-                          style: TextStyle(
-                            fontSize: 28,
-                            color: gSustenidoAudioPlayer_bool == true
-                                ? Colors.red
-                                : (Provider.of<ThemeProvider>(
-                                    context,
-                                  ).isDarkMode
-                                    ? Colors.black
-                                    : Colors.white),
-                          ),
-                        ),
-                      ),
-                      style: ButtonStyle(
-                        fixedSize: WidgetStateProperty.all<Size>(Size(90, 90)),
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18.0),
-                            side: BorderSide(
-                              color: gSustenidoAudioPlayer_bool == true
-                                  ? Colors.red
-                                  : (Provider.of<ThemeProvider>(
-                                      context,
-                                    ).isDarkMode
-                                      ? Colors.black
-                                      : Colors.white),
-                            ),
-                          ),
-                        ),
-                        backgroundColor: WidgetStateProperty.all(
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                        elevation: WidgetStateProperty.all(0), // Sem sombra
-                        overlayColor: WidgetStateProperty.all(
-                          Colors.transparent,
-                        ), // Remove efeito de clique
-                      ),
-                      onPressed: () {
-                        _togglePad(
-                          "G#",
-                          gSustenidoAudioPlayer,
-                        ); // gSustenidoAudioPlayer é o player associado ao pad Ab
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                margin: EdgeInsets.only(bottom: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    ElevatedButton(
-                      child: Center(
-                        child: Text(
-                          "A",
-                          style: TextStyle(
-                            fontSize: 28,
-                            color: aAudioPlayer_bool == true
-                                ? Colors.red
-                                : (Provider.of<ThemeProvider>(
-                                    context,
-                                  ).isDarkMode
-                                    ? Colors.black
-                                    : Colors.white),
-                          ),
-                        ),
-                      ),
-                      style: ButtonStyle(
-                        fixedSize: WidgetStateProperty.all<Size>(Size(90, 90)),
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18.0),
-                            side: BorderSide(
-                              color: aAudioPlayer_bool == true
-                                  ? Colors.red
-                                  : (Provider.of<ThemeProvider>(
-                                      context,
-                                    ).isDarkMode
-                                      ? Colors.black
-                                      : Colors.white),
-                            ),
-                          ),
-                        ),
-                        backgroundColor: WidgetStateProperty.all(
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                        elevation: WidgetStateProperty.all(0), // Sem sombra
-                        overlayColor: WidgetStateProperty.all(
-                          Colors.transparent,
-                        ), // Remove efeito de clique
-                      ),
-                      onPressed: () {
-                        _togglePad(
-                          "A",
-                          aAudioPlayer,
-                        ); // aAudioPlayer é o player associado ao pad A
-                      },
-                    ),
-                    ElevatedButton(
-                      child: Center(
-                        child: Text(
-                          "Bb",
-                          style: TextStyle(
-                            fontSize: 28,
-                            color: aSustenidoAudioPlayer_bool == true
-                                ? Colors.red
-                                : (Provider.of<ThemeProvider>(
-                                    context,
-                                  ).isDarkMode
-                                    ? Colors.black
-                                    : Colors.white),
-                          ),
-                        ),
-                      ),
-                      style: ButtonStyle(
-                        fixedSize: WidgetStateProperty.all<Size>(Size(90, 90)),
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18.0),
-                            side: BorderSide(
-                              color: aSustenidoAudioPlayer_bool == true
-                                  ? Colors.red
-                                  : (Provider.of<ThemeProvider>(
-                                      context,
-                                    ).isDarkMode
-                                      ? Colors.black
-                                      : Colors.white),
-                            ),
-                          ),
-                        ),
-                        backgroundColor: WidgetStateProperty.all(
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                        elevation: WidgetStateProperty.all(0), // Sem sombra
-                        overlayColor: WidgetStateProperty.all(
-                          Colors.transparent,
-                        ), // Remove efeito de clique
-                      ),
-                      onPressed: () {
-                        _togglePad(
-                          "A#",
-                          aSustenidoAudioPlayer,
-                        ); // aSustenidoAudioPlayer é o player associado ao pad Bb
-                      },
-                    ),
-                    ElevatedButton(
-                      style: ButtonStyle(
-                        fixedSize: WidgetStateProperty.all<Size>(Size(90, 90)),
-                        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18.0),
-                            side: BorderSide(
-                              color: bAudioPlayer_bool == true
-                                  ? Colors.red
-                                  : (Provider.of<ThemeProvider>(
-                                      context,
-                                    ).isDarkMode
-                                      ? Colors.black
-                                      : Colors.white),
-                            ),
-                          ),
-                        ),
-                        backgroundColor: WidgetStateProperty.all(
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                        elevation: WidgetStateProperty.all(0), // Sem sombra
-                        overlayColor: WidgetStateProperty.all(
-                          Colors.transparent,
-                        ), // Remove efeito de clique
-                      ),
-                      onPressed: () {
-                        _togglePad(
-                          "B",
-                          bAudioPlayer,
-                        ); // bAudioPlayer é o player associado ao pad B
-                      },
-                      child: Center(
-                        child: Text(
-                          "B",
-                          style: TextStyle(
-                            fontSize: 28,
-                            color: bAudioPlayer_bool == true
-                                ? Colors.red
-                                : (Provider.of<ThemeProvider>(
-                                    context,
-                                  ).isDarkMode
-                                    ? Colors.black
-                                    : Colors.white),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  activeTrackColor: Colors.red, // Cor da parte ativa do slider
-                  inactiveTrackColor: Colors.red.withOpacity(
-                    0.5,
-                  ), // Cor da parte inativa
-                  trackShape:
-                      RoundedRectSliderTrackShape(), // Forma retangular da trilha
-                  trackHeight: 16.0, // Altura do retângulo
-                  thumbColor: const Color.fromARGB(
-                    255,
-                    232,
-                    0,
-                    0,
-                  ), // Cor do "pino"
-                  thumbShape: RoundSliderThumbShape(
-                    enabledThumbRadius: 10.0,
-                    disabledThumbRadius: 0.21,
-                  ), // Tamanho do "pino"
-                  overlayColor: Colors.red.withOpacity(
-                    0.0,
-                  ), // Cor do overlay ao arrastar
-                ),
-                child: Slider(
-                  value: currentVolume,
-                  min: 0.0,
-                  max: 1.0,
-                  label: (currentVolume * 100).toInt().toString(),
-                  onChanged: (double value) {
-                    setState(() {
-                      _adjustVolume(value);
-                    });
-                  },
-                ),
-              ),
-              /*     ElevatedButton(
-                  style: ButtonStyle(
-                    fixedSize: WidgetStateProperty.all<Size>(Size(80, 50)),
-
-                    shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-                        RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18.0),
-                            side: BorderSide(color: Colors.red))),
-                    backgroundColor: WidgetStateProperty.resolveWith<Color>(
-                      (Set<MaterialState> states) {
-                        if (bAudioPlayer_bool == true) {
-                          return Colors.transparent;
-                        } else {
-                          // Return another color if the condition is false
-                          return Colors
-                              .transparent; // Or any other color you prefer
-                        }
-                      },
-                    ),
-                    elevation:
-                        WidgetStateProperty.all(0), // Set elevation to 0
-                    overlayColor: WidgetStateProperty.all(
-                        Colors.transparent), // Remove overlay color
-                    // Add other properties as needed
                   ),
-                  onPressed: () => {
-                        _stop2(),
-                        stop(),
-                      },
-                  child: Text(
-                    "Stop",
-                    style: TextStyle(color: Colors.red),
-                  )),
-       */
-            ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Container(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        ElevatedButton(
+                          child: Center(
+                            child: Text(
+                              "A",
+                              style: TextStyle(
+                                fontSize: 28,
+                                color: aAudioPlayer_bool == true
+                                    ? Colors.red
+                                    : (Provider.of<ThemeProvider>(
+                                        context,
+                                      ).isDarkMode
+                                        ? Colors.black
+                                        : Colors.white),
+                              ),
+                            ),
+                          ),
+                          style: ButtonStyle(
+                            fixedSize:
+                                WidgetStateProperty.all<Size>(Size(90, 90)),
+                            shape:
+                                WidgetStateProperty.all<RoundedRectangleBorder>(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18.0),
+                                side: BorderSide(
+                                  color: aAudioPlayer_bool == true
+                                      ? Colors.red
+                                      : (Provider.of<ThemeProvider>(
+                                          context,
+                                        ).isDarkMode
+                                          ? Colors.black
+                                          : Colors.white),
+                                ),
+                              ),
+                            ),
+                            backgroundColor: WidgetStateProperty.all(
+                              Provider.of<ThemeProvider>(context).isDarkMode
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            elevation: WidgetStateProperty.all(0), // Sem sombra
+                            overlayColor: WidgetStateProperty.all(
+                              Colors.transparent,
+                            ), // Remove efeito de clique
+                          ),
+                          onPressed: () {
+                            _togglePad(
+                              "A",
+                              aAudioPlayer,
+                            ); // aAudioPlayer é o player associado ao pad A
+                          },
+                        ),
+                        ElevatedButton(
+                          child: Center(
+                            child: Text(
+                              "Bb",
+                              style: TextStyle(
+                                fontSize: 28,
+                                color: aSustenidoAudioPlayer_bool == true
+                                    ? Colors.red
+                                    : (Provider.of<ThemeProvider>(
+                                        context,
+                                      ).isDarkMode
+                                        ? Colors.black
+                                        : Colors.white),
+                              ),
+                            ),
+                          ),
+                          style: ButtonStyle(
+                            fixedSize:
+                                WidgetStateProperty.all<Size>(Size(90, 90)),
+                            shape:
+                                WidgetStateProperty.all<RoundedRectangleBorder>(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18.0),
+                                side: BorderSide(
+                                  color: aSustenidoAudioPlayer_bool == true
+                                      ? Colors.red
+                                      : (Provider.of<ThemeProvider>(
+                                          context,
+                                        ).isDarkMode
+                                          ? Colors.black
+                                          : Colors.white),
+                                ),
+                              ),
+                            ),
+                            backgroundColor: WidgetStateProperty.all(
+                              Provider.of<ThemeProvider>(context).isDarkMode
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            elevation: WidgetStateProperty.all(0), // Sem sombra
+                            overlayColor: WidgetStateProperty.all(
+                              Colors.transparent,
+                            ), // Remove efeito de clique
+                          ),
+                          onPressed: () {
+                            _togglePad(
+                              "A#",
+                              aSustenidoAudioPlayer,
+                            ); // aSustenidoAudioPlayer é o player associado ao pad Bb
+                          },
+                        ),
+                        ElevatedButton(
+                          style: ButtonStyle(
+                            fixedSize:
+                                WidgetStateProperty.all<Size>(Size(90, 90)),
+                            shape:
+                                WidgetStateProperty.all<RoundedRectangleBorder>(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18.0),
+                                side: BorderSide(
+                                  color: bAudioPlayer_bool == true
+                                      ? Colors.red
+                                      : (Provider.of<ThemeProvider>(
+                                          context,
+                                        ).isDarkMode
+                                          ? Colors.black
+                                          : Colors.white),
+                                ),
+                              ),
+                            ),
+                            backgroundColor: WidgetStateProperty.all(
+                              Provider.of<ThemeProvider>(context).isDarkMode
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            elevation: WidgetStateProperty.all(0), // Sem sombra
+                            overlayColor: WidgetStateProperty.all(
+                              Colors.transparent,
+                            ), // Remove efeito de clique
+                          ),
+                          onPressed: () {
+                            _togglePad(
+                              "B",
+                              bAudioPlayer,
+                            ); // bAudioPlayer é o player associado ao pad B
+                          },
+                          child: Center(
+                            child: Text(
+                              "B",
+                              style: TextStyle(
+                                fontSize: 28,
+                                color: bAudioPlayer_bool == true
+                                    ? Colors.red
+                                    : (Provider.of<ThemeProvider>(
+                                        context,
+                                      ).isDarkMode
+                                        ? Colors.black
+                                        : Colors.white),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor:
+                        Colors.red, // Cor da parte ativa do slider
+                    inactiveTrackColor: Colors.red.withOpacity(
+                      0.5,
+                    ), // Cor da parte inativa
+                    trackShape:
+                        RoundedRectSliderTrackShape(), // Forma retangular da trilha
+                    trackHeight: 16.0, // Altura do retângulo
+                    thumbColor: const Color.fromARGB(
+                      255,
+                      232,
+                      0,
+                      0,
+                    ), // Cor do "pino"
+                    thumbShape: RoundSliderThumbShape(
+                      enabledThumbRadius: 10.0,
+                      disabledThumbRadius: 0.21,
+                    ), // Tamanho do "pino"
+                    overlayColor: Colors.red.withOpacity(
+                      0.0,
+                    ), // Cor do overlay ao arrastar
+                  ),
+                  child: Slider(
+                    value: currentVolume,
+                    min: 0.0,
+                    max: 1.0,
+                    label: (currentVolume * 100).toInt().toString(),
+                    onChanged: (double value) {
+                      setState(() {
+                        _adjustVolume(value);
+                      });
+                    },
+                  ),
+                ),
+                /*   Text(
+                  "Transition Speed",
+                  style: TextStyle(
+                    color: Provider.of<ThemeProvider>(context).isDarkMode
+                        ? Colors.black
+                        : Colors.white,
+                  ),
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildButton(context, 100),
+                    SizedBox(width: 10),
+                    _buildButton(context, 200),
+                    SizedBox(width: 10),
+                    _buildButton(context, 300),
+                  ],
+                )
+           */ /*     ElevatedButton(
+                    style: ButtonStyle(
+                      fixedSize: WidgetStateProperty.all<Size>(Size(80, 50)),
+        
+                      shape: WidgetStateProperty.all<RoundedRectangleBorder>(
+                          RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18.0),
+                              side: BorderSide(color: Colors.red))),
+                      backgroundColor: WidgetStateProperty.resolveWith<Color>(
+                        (Set<MaterialState> states) {
+                          if (bAudioPlayer_bool == true) {
+                            return Colors.transparent;
+                          } else {
+                            // Return another color if the condition is false
+                            return Colors
+                                .transparent; // Or any other color you prefer
+                          }
+                        },
+                      ),
+                      elevation:
+                          WidgetStateProperty.all(0), // Set elevation to 0
+                      overlayColor: WidgetStateProperty.all(
+                          Colors.transparent), // Remove overlay color
+                      // Add other properties as needed
+                    ),
+                    onPressed: () => {
+                          _stop2(),
+                          stop(),
+                        },
+                    child: Text(
+                      "Stop",
+                      style: TextStyle(color: Colors.red),
+                    )),
+         */
+              ],
+            ),
           ),
         ),
       ),
@@ -1477,7 +1638,7 @@ void _showInfoDialog(BuildContext context) {
               Text('Versão: 1.0.0', style: TextStyle(color: Colors.white)),
               SizedBox(height: 10),
               Text(
-                'Este é um aplicativo para [descrição do propósito do app].',
+                "Este aplicativo oferece ambiências sonoras contínuas (pads) para enriquecer sessões de prática musical, gravações, apresentações ao vivo ou momentos de concentração. Controle transições suaves entre tons, ajuste a velocidade de troca e personalize a atmosfera sonora conforme sua necessidade.',",
                 style: TextStyle(color: Colors.white),
               ),
             ],
